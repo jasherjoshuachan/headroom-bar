@@ -13,7 +13,7 @@ Antigravity (Gemini) and local model servers work out of the box, and a new sour
 
 ## Install
 
-Homebrew (once the tap is live):
+Homebrew:
 
 ```bash
 brew install --cask jasherjoshuachan/tap/headroom-bar
@@ -35,6 +35,9 @@ Building from source avoids the prompt. Start-at-login for a downloaded copy: Sy
 
 Keep Headroom in `/Applications`. On macOS 27, menu bar items from apps outside it get filed under the program path
 and menu bar managers (Thaw, Bartender) can lose them.
+
+**Requirements:** macOS 14 or later and `python3` (the providers are Python scripts). `python3` comes with the Xcode Command
+Line Tools: if `/usr/bin/python3` isn't there yet, run `xcode-select --install` once.
 
 ## Setup
 
@@ -71,7 +74,8 @@ because its endpoint rate-limits). **Releases and Updates** opens this repo's re
 call to check for updates.
 
 Bar rows: `62% 3:40p` (resets within 20 h), `62% Wed` (within a week), `62% 22 Nov`. `off` = the source isn't running
-or signed out, `err` = it failed (reason in the dropdown).
+or signed out, `err` = it failed (reason in the dropdown), `~` before a number = that reading is old: the source refused the
+latest request, so Headroom is showing the last good one (the dropdown says so).
 
 ## Add your own provider
 

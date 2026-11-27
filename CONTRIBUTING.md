@@ -10,3 +10,9 @@ Small PRs welcome, especially new providers.
 
 Provider rules: [docs/providers.md](docs/providers.md). Keep the repo generic: no personal paths, hostnames, accounts or
 keys (`verify.sh` checks for the obvious ones).
+
+## Releasing (maintainer)
+
+1. Bump `VERSION`, add the `## [x.y.z] - date` entry to `CHANGELOG.md`, merge.
+2. Tag `vX.Y.Z` and push the tag: the release workflow runs `verify.sh`, builds the zip and publishes it with the changelog entry.
+3. Update the cask in the tap (`homebrew-tap`, `Casks/headroom-bar.rb`): new `version` and the `sha256` from the release's `.sha256` file.
