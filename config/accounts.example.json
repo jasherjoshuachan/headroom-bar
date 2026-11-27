@@ -1,0 +1,6 @@
+[
+  {"provider": "claude", "label": "C", "login": "~/.claude"},
+  {"provider": "claude", "label": "2", "login": "~/.claude-second", "enabled": false},
+  {"provider": "antigravity", "label": "A", "enabled": false},
+  {"provider": "local", "label": "L", "url": "http://localhost:8080", "hide_when_off": true, "enabled": false}
+]
