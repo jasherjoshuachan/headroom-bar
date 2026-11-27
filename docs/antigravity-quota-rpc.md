@@ -11,7 +11,7 @@ Antigravity 2.0 is an Electron application that spawns a companion native Go bin
 - **Binary Path**: `/Applications/Antigravity.app/Contents/Resources/bin/language_server`
 - **Execution Mode**: Runs locally as a child process when the app starts.
 - **Protocol**: Exposes a Connect RPC (gRPC-web compatible over HTTP/1.1 and HTTP/2) endpoint on `127.0.0.1`.
-- **Security**: Protected with an ephemeral `--csrf_token` CLI flag generated per application launch.
+- **Security**: Protected with an ephemeral CSRF token generated per application launch. Older builds pass it as a `--csrf_token` command-line flag; Antigravity 2.35+ passes it in the process environment as `ANTIGRAVITY_SERVER_CSRF_TOKEN` (the command line then has only `--read_host_bridge_token_from_stdin`).
 
 ```
 ┌──────────────────────────────────────┐
@@ -44,9 +44,10 @@ Because Antigravity allocates ports dynamically on launch (`--https_server_port 
 ### Discovery Steps
 1. **Find Process and CSRF Token**:
    ```bash
-   ps aux | grep language_server
+   ps aux | grep language_server            # older builds: look for --csrf_token <UUID>
+   ps eww -p <PID> -o command=              # 2.35+: look for ANTIGRAVITY_SERVER_CSRF_TOKEN=<UUID> in the environment
    ```
-   Extract `--csrf_token <UUID>` from arguments.
+   Headroom tries the command line first, then the environment.
 
 2. **Find Listening Ports**:
    Using the PID of `language_server`:
