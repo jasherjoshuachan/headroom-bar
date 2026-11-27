@@ -25,7 +25,7 @@ inside the app. The name is the file name (letters, digits, `-`, `_` only).
 | `plan` | optional; read it from the source, never hard-code it |
 | `title` | optional extra header text (for example a loaded model name) |
 | `hide` | optional; `true` hides the item while it holds |
-| `stale` | optional; `true` when the reading is cached because the source refused |
+| `stale` | optional; `true` when the reading is cached because the source refused. Headroom marks the bar with `~` and says so in the dropdown |
 | `icon` | optional `{"path": "...", "style": "template" or "shape"}` |
 | `actions` | optional dropdown items `{"title", "command", "checked"}`; Headroom runs the shell command and shows its output if it fails |
 | `meters` | any number, in display order. `pct` is percent **remaining**; `reset` is an ISO time; or plain `text` |

@@ -52,11 +52,17 @@ struct Account {
     var displayName: String { (raw["name"] as? String) ?? provider.prefix(1).uppercased() + provider.dropFirst() }
 }
 
+var accountsProblem: String? = nil   // set when accounts.json exists but can't be used
+
 func loadAccounts() -> [Account] {
+    accountsProblem = nil
     ensureConfig()
     let path = configDir + "/accounts.json"
-    guard let data = FileManager.default.contents(atPath: path),
-          let list = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+    guard let data = FileManager.default.contents(atPath: path) else { accountsProblem = "can't read accounts.json"; return [] }
+    guard let list = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+        accountsProblem = "accounts.json isn't a JSON list of accounts"
+        return []
+    }
     var seen: [String: Int] = [:]
     return list.compactMap { entry in
         guard let p = entry["provider"] as? String, let l = entry["label"] as? String, !p.isEmpty, !l.isEmpty else { return nil }
@@ -229,8 +235,8 @@ class Headroom: NSObject, NSApplicationDelegate {
         accounts = loadAccounts()
         if accounts.isEmpty {
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            setBar(item, icon: nil, label: "H", top: "no", bottom: "accts")
-            item.menu = makeMenu(header: "Headroom: no accounts in \(configDir)/accounts.json", lines: [])
+            setBar(item, icon: nil, label: "H", top: accountsProblem == nil ? "no" : "bad", bottom: accountsProblem == nil ? "accts" : "config")
+            item.menu = makeMenu(header: "Headroom: " + (accountsProblem.map { "\($0) (\(configDir)/accounts.json)" } ?? "no accounts in \(configDir)/accounts.json"), lines: [])
             items["_none"] = item
             return
         }
@@ -374,8 +380,13 @@ class Headroom: NSObject, NSApplicationDelegate {
         refreshing = true
         let accts = accounts, gen = generation
         DispatchQueue.global(qos: .utility).async {
+            // Run the providers side by side, so one slow source can't hold up the rest.
             var results: [String: [String: Any]] = [:]
-            for acct in accts { results[acct.id] = self.runProvider(acct, force: force) }
+            let lock = NSLock()
+            DispatchQueue.concurrentPerform(iterations: accts.count) { i in
+                let r = self.runProvider(accts[i], force: force)
+                lock.lock(); results[accts[i].id] = r; lock.unlock()
+            }
             DispatchQueue.main.async {
                 for acct in accts {
                     guard let item = self.items[acct.id], let r = results[acct.id] else { continue }
@@ -401,8 +412,9 @@ class Headroom: NSObject, NSApplicationDelegate {
         let top: String, bottom: String
         switch status {
         case "ok":
-            top = meters.count > 0 ? shortRow(meters[0]) : "no lim"
-            bottom = meters.count > 1 ? shortRow(meters[1]) : "–"
+            let stale = r["stale"] as? Bool == true   // cached because the source refused: mark the bar, not just the menu
+            top = meters.count > 0 ? (stale ? "~" : "") + shortRow(meters[0]) : "no lim"
+            bottom = meters.count > 1 ? (stale ? "~" : "") + shortRow(meters[1]) : "–"
         case "off": top = "off"; bottom = "–"
         default: top = "err"; bottom = "–"
         }
@@ -414,7 +426,7 @@ class Headroom: NSObject, NSApplicationDelegate {
         var lines = meters.map(longRow)
         if status == "ok" && meters.isEmpty { lines.append("No usage limits reported") }
         if let err = r["error"] as? String { lines.append((status == "ok" ? "Note: " : "") + err) }
-        if r["stale"] as? Bool == true { lines.append("Showing the last good reading (source refused)") }
+        if r["stale"] as? Bool == true { lines.append("~ Showing the last good reading (the source refused the latest request)") }
         item.menu = makeMenu(header: header + (showUsed ? " · used" : " · remaining"), lines: lines,
                              actions: (r["actions"] as? [[String: Any]]) ?? [])
     }

@@ -19,7 +19,7 @@ import time
 import urllib.error
 import urllib.request
 
-from _common import FORCE, account_arg, emit, read_cache, write_cache
+from _common import CACHE_DIR, FORCE, account_arg, emit, read_cache, write_cache
 
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
 ICON = {"path": "/Applications/Claude.app/Contents/Resources/TrayIconTemplate@2x.png", "style": "template"}
@@ -126,6 +126,17 @@ def fetch_live(service):
         return {"status": "error", "error": str(e)}
 
 
+def prune_old_caches(current):
+    """Each code change gets a new cache name; drop the readings of earlier versions for the same login."""
+    prefix = current.rsplit("-", 1)[0] + "-"
+    try:
+        for name in os.listdir(CACHE_DIR):
+            if name.startswith(prefix) and name != current:
+                os.remove(os.path.join(CACHE_DIR, name))
+    except OSError:
+        pass
+
+
 def get(account):
     service = keychain_service(config_dir(account.get("login")))
     # The cache name carries a hash of this file, so any code change (a new rule, a fixed bug) drops old
@@ -133,6 +144,7 @@ def get(account):
     with open(__file__, "rb") as f:
         code = hashlib.sha256(f.read()).hexdigest()[:6]
     cache = "claude-" + hashlib.sha256(service.encode()).hexdigest()[:8] + "-" + code + ".json"
+    prune_old_caches(cache)
     fetched_at, cached = read_cache(cache)
     now = time.time()
     force = FORCE
